@@ -1,0 +1,18 @@
+#pragma once
+// Generated from the public helper. Bytes avoid MSVC's string-literal limit.
+#include <maya/MString.h>
+static const unsigned char kCurveNetPythonSource[] = {
+@CURVENET_PYTHON_BYTES@
+    0
+};
+static MString curveNetPythonBootstrap() {
+  MString command(
+      "import sys as _cn_sys, types as _cn_types\n"
+      "_cn_module = _cn_types.ModuleType('_curvenet_embedded')\n"
+      "exec(compile(r'''");
+  command += reinterpret_cast<const char *>(kCurveNetPythonSource);
+  command +=
+      "''', '<curvenet.mll>', 'exec'), _cn_module.__dict__)\n"
+      "_cn_sys.modules['_curvenet_embedded'] = _cn_module\n";
+  return command;
+}

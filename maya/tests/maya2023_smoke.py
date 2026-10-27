@@ -25,8 +25,15 @@ import curvenet_maya as cn
 assert cmds.about(apiVersion=True) // 10000 == 2023, cmds.about(apiVersion=True)
 cn.load_plugin(args.plugin)
 cmds.file(new=True, force=True)
-demo = cn.create_demo()
-assert demo["max_displacement"] > 1e-5, "Synthetic demo did not deform"
+assert "_curvenet_embedded" in sys.modules, "Plug-in did not load its embedded helper"
+sys.modules["_curvenet_embedded"].create_demo()
+demo_nodes = cmds.ls(type="cnProfileMover") or []
+assert len(demo_nodes) == 1, "Synthetic demo did not create its deformer"
+demo_shapes = cmds.deformer(demo_nodes[0], query=True, geometry=True)
+selection = om.MSelectionList()
+selection.add(demo_shapes[0])
+points_demo = om.MFnMesh(selection.getDagPath(0)).getPoints(om.MSpace.kObject)
+assert max(abs(p.z) for p in points_demo) > 1e-5, "Synthetic demo did not deform"
 cmds.file(new=True, force=True)
 test_mesh = cmds.polyPlane(
     width=10, height=10, subdivisionsX=10, subdivisionsY=10, axis=(0, 0, 1)
@@ -36,7 +43,16 @@ test_curves = [
     cmds.curve(degree=1, point=[(0, 0, 0.02), (4, 0, 0.02)], knot=[0, 1]),
     cmds.curve(degree=1, point=[(0, 0, 0.02), (0, 4, 0.02)], knot=[0, 1]),
 ]
-multi = cn.bind_curves(test_mesh, test_curves)
+cmds.select([test_mesh] + test_curves)
+cmds.cnBindSelection()
+multi_nodes = cmds.ls(type="cnProfileMover") or []
+assert len(multi_nodes) == 1, "Multi-curve command did not create its deformer"
+multi_node = multi_nodes[0]
+source_plug = cmds.connectionInfo(
+    multi_node + ".controlOffsets[1]", sourceFromDestination=True
+)
+assert source_plug, "Central control is not connected"
+central_control = source_plug.rsplit(".", 1)[0]
 test_shape = cmds.listRelatives(
     test_mesh, shapes=True, noIntermediate=True, fullPath=True
 )[0]
@@ -44,12 +60,12 @@ selection = om.MSelectionList()
 selection.add(test_shape)
 test_path = selection.getDagPath(0)
 before = om.MFnMesh(test_path).getPoints(om.MSpace.kObject)
-cmds.setAttr(multi["controls"][1] + ".translateZ", 1.0)
+cmds.setAttr(central_control + ".translateZ", 1.0)
 after = om.MFnMesh(test_path).getPoints(om.MSpace.kObject)
 assert max((a - b).length() for a, b in zip(after, before)) > 1e-5, (
     "Multiple curve rig did not deform"
 )
-curve_report = cn.diagnose(multi["deformer"])
+curve_report = cn.diagnose(multi_node)
 assert curve_report["spline_indices"] == 12, curve_report
 cmds.file(new=True, force=True)
 n = 6

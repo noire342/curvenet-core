@@ -1,5 +1,6 @@
 // Host adapter only; binding and animator-space mapping live in RigSession.
 #include "curvenet/rig.h"
+#include "embedded_python.h"
 #include <cmath>
 #include <map>
 #include <maya/MArrayDataHandle.h>
@@ -16,6 +17,7 @@
 #include <maya/MItGeometry.h>
 #include <maya/MMatrix.h>
 #include <maya/MPointArray.h>
+#include <maya/MPxCommand.h>
 #include <maya/MPxDeformerNode.h>
 #include <mutex>
 #include <stdexcept>
@@ -212,13 +214,52 @@ MObject CurveNetDeformer::projectionMesh, CurveNetDeformer::restControlPoints,
     CurveNetDeformer::splineIndices, CurveNetDeformer::controlParents,
     CurveNetDeformer::controlOffsets, CurveNetDeformer::sampling,
     CurveNetDeformer::bindVersion;
+
+class BindSelectionCommand final : public MPxCommand {
+public:
+  static void *creator() { return new BindSelectionCommand; }
+  MStatus doIt(const MArgList &) override {
+    return MGlobal::executePythonCommand(
+        "import sys; sys.modules['_curvenet_embedded'].bind_selection()", true,
+        true);
+  }
+};
 } // namespace
 MStatus initializePlugin(MObject object) {
-  MFnPlugin p(object, "CurveNet Research", "0.2.1", "Any");
-  return p.registerNode("cnProfileMover", CurveNetDeformer::id,
-                        CurveNetDeformer::creator, CurveNetDeformer::initialize,
-                        MPxNode::kDeformerNode);
+  MFnPlugin p(object, "CurveNet Research", "0.2.2", "Any");
+  MStatus status = p.registerNode(
+      "cnProfileMover", CurveNetDeformer::id, CurveNetDeformer::creator,
+      CurveNetDeformer::initialize, MPxNode::kDeformerNode);
+  if (!status)
+    return status;
+  status = p.registerCommand("cnBindSelection", BindSelectionCommand::creator);
+  if (!status) {
+    p.deregisterNode(CurveNetDeformer::id);
+    return status;
+  }
+  status =
+      MGlobal::executePythonCommand(curveNetPythonBootstrap(), false, false);
+  if (!status) {
+    p.deregisterCommand("cnBindSelection");
+    p.deregisterNode(CurveNetDeformer::id);
+    return status;
+  }
+  status = MGlobal::executePythonCommand(
+      "import sys; sys.modules['_curvenet_embedded'].install_menu()", false,
+      false);
+  if (!status)
+    MGlobal::displayWarning(
+        "CurveNet: menu unavailable; use cnBindSelection from Python.");
+  return MS::kSuccess;
 }
 MStatus uninitializePlugin(MObject object) {
-  return MFnPlugin(object).deregisterNode(CurveNetDeformer::id);
+  MFnPlugin p(object);
+  MStatus status = p.deregisterNode(CurveNetDeformer::id);
+  if (!status)
+    return status;
+  MGlobal::executePythonCommand(
+      "import sys; sys.modules['_curvenet_embedded'].remove_menu(); "
+      "sys.modules.pop('_curvenet_embedded', None)",
+      false, false);
+  return p.deregisterCommand("cnBindSelection");
 }

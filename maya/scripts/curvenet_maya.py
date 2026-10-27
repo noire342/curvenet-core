@@ -9,6 +9,8 @@ import math
 import itertools
 from pathlib import Path
 
+_menu_owned = False
+
 
 def validate_bundle(data):
     """Validate the mesh-local interchange format without loading Maya."""
@@ -458,6 +460,43 @@ def bind_selection(weld_tolerance=1e-4):
     if len(meshes) != 1 or not curves:
         raise ValueError("Select exactly one polygon mesh and one or more NURBS curves")
     return bind_curves(meshes[0], curves, weld_tolerance)
+
+
+def install_menu():
+    """Install the optional menu after the plug-in registers its commands."""
+    from maya import cmds, mel
+
+    if cmds.about(batch=True):
+        return False
+    main = mel.eval("$curvenetMainWindow = $gMainWindow")
+    if not main:
+        return False
+    global _menu_owned
+    if cmds.menu("CurveNetResearchMenu", exists=True):
+        return False
+    menu = cmds.menu(
+        "CurveNetResearchMenu", label="CurveNet", parent=main, tearOff=True
+    )
+    cmds.menuItem(
+        label="Bind selected mesh and curves",
+        parent=menu,
+        command=lambda *_: cmds.cnBindSelection(),
+    )
+    _menu_owned = True
+    return True
+
+
+def remove_menu():
+    from maya import cmds
+
+    global _menu_owned
+    if (
+        _menu_owned
+        and not cmds.about(batch=True)
+        and cmds.menu("CurveNetResearchMenu", exists=True)
+    ):
+        cmds.deleteUI("CurveNetResearchMenu", menu=True)
+    _menu_owned = False
 
 
 def demo_bundle():

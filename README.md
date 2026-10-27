@@ -5,6 +5,11 @@ profile curves. This repository contains the host-independent numerical core and
 its tests, plus an optional Maya 2023 C++ deformer adapter and authoring helper.
 The core alone does not require Maya or Blender.
 
+The Maya 2023 adapter now embeds its authoring helper in a single `.mll`.
+Load it, select one polygon mesh and one or more NURBS curves, then choose
+**CurveNet > Bind selected mesh and curves** (or `maya.cmds.cnBindSelection()`).
+See the [Maya workflow and limitations](docs/maya2023.md).
+
 The implementation is inspired by de Goes, Sheffler and Fleischer,
 [Character Articulation through Profile Curves (2022)](https://research.pixar.com/docs/2022.SiggraphPapers.GSF.pdf).
 It is an independent research implementation, not Pixar software. Equivalence to

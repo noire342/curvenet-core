@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(curvenet_core VERSION 0.2.1 LANGUAGES CXX)
+project(curvenet_core VERSION 0.2.2 LANGUAGES CXX)
 
 option(CURVENET_MAYA "Build the Windows Maya 2023 deformer adapter" OFF)
 
