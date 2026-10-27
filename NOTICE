@@ -1,0 +1,5 @@
+CurveNet Core
+Copyright (C) 2026 CurveNet contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Eigen is a separately distributed dependency; see docs/EIGEN-LICENSE.txt.
