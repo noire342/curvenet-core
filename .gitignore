@@ -7,3 +7,5 @@ _deps/
 *.lib
 *.dll
 *.exe
+__pycache__/
+*.pyc

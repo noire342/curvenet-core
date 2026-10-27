@@ -2,8 +2,8 @@
 
 Experimental C++17 surface deformation driven by a network of cubic Bézier
 profile curves. This repository contains the host-independent numerical core and
-its tests. It does not require Maya or Blender, or include a plug-in, character,
-or animation rig.
+its tests, plus an optional Maya 2023 C++ deformer adapter and authoring helper.
+The core alone does not require Maya or Blender.
 
 The implementation is inspired by de Goes, Sheffler and Fleischer,
 [Character Articulation through Profile Curves (2022)](https://research.pixar.com/docs/2022.SiggraphPapers.GSF.pdf).
@@ -19,10 +19,12 @@ Pixar's production system or production-ready deformation quality is not establi
 - `tests/`: synthetic geometry tests covering invariants and failure cases.
 - `examples/basic.cpp`: a small executable showing binding and deformation.
 - `docs/architecture.md`: spaces, graph format, cache and limitations.
+- `maya/`: optional Maya 2023 `MPxDeformerNode`, Python setup and smoke test.
+- [Maya build and use](docs/maya2023.md): create a demo or bind multiple curves.
 
 ## Build and test
 
-Requirements: CMake 3.20+, a C++17 compiler, and Eigen 3.4.0. CMake searches for
+Requirements: CMake 3.24+, a C++17 compiler, and Eigen 3.4.0. CMake searches for
 an installed Eigen first, then downloads Eigen 3.4.0 with a SHA-256 check. For an
 offline build, provide the directory containing `Eigen/Core` with `EIGEN_ROOT`.
 
@@ -36,8 +38,8 @@ ctest --test-dir build -C Release --output-on-failure
 cmake -S . -B build -DEIGEN_ROOT=C:/path/to/eigen-3.4.0
 ```
 
-The target `CurveNet::core` exposes Eigen's C++ types. The library contains no
-Autodesk or Blender SDK code; embedding it in a host requires a separate adapter.
+The target `CurveNet::core` exposes Eigen's C++ types. The core library contains no
+Autodesk or Blender SDK code; `maya/` provides a separate optional adapter.
 Keep a binding and use it for multiple solves while projection geometry, graph and
 options remain unchanged. The public API is experimental and may change.
 
